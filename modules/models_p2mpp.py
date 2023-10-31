@@ -4,7 +4,7 @@
 import tensorflow as tf
 import tflearn
 import os
-import tensorflow.contrib.layers as tfcontriblayers
+# import tensorflow.contrib.layers as tfcontriblayers
 
 from modules.losses import mesh_loss_2, laplace_loss_2
 from modules.layers import LocalGraphProjection, SampleHypothesis, DeformationReasoning
@@ -67,7 +67,7 @@ class Model(object):
     def save(self, sess=None, ckpt_path=None, step=None):
         if not sess:
             raise AttributeError('TensorFlow session not provided.')
-        saver = tf.train.Saver(self.vars, max_to_keep=0)
+        saver = tf.compat.v1.train.Saver(self.vars, max_to_keep=0)
         save_path = saver.save(sess, os.path.join(ckpt_path, '{}.ckpt'.format(self.name)), global_step=step)
         print('Model saved in file: {}, epoch {}'.format(save_path, step))
 
@@ -75,7 +75,7 @@ class Model(object):
         if not sess:
             raise AttributeError('TensorFlow session not provided.')
         # print(self.vars)
-        saver = tf.train.Saver(self.vars)
+        saver = tf.compat.v1.train.Saver(self.vars)
         save_path = os.path.join(ckpt_path, '{}.ckpt-{}'.format(self.name, step))
         saver.restore(sess, save_path)
         print('Model restored from file: {}, epoch {}'.format(save_path, step))
@@ -88,7 +88,7 @@ class MeshNet(Model):
         self.inputs = placeholders['features']
         self.placeholders = placeholders
         self.args = args
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.args.lr)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.args.lr)
         self.summary_loss = None
         self.merged_summary_op = None
         self.output1l = None
@@ -104,9 +104,9 @@ class MeshNet(Model):
     def loadcnn(self, sess=None, ckpt_path=None, step=None):
         if not sess:
             raise AttributeError('TensorFlow session not provided.')
-        variables_to_restore = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='meshnet/cnn/')
+        variables_to_restore = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='meshnet/cnn/')
         var_list = {var.name: var for var in variables_to_restore}
-        saver = tf.train.Saver(var_list)
+        saver = tf.compat.v1.train.Saver(var_list)
         save_path = os.path.join(ckpt_path, '{}.ckpt-{}'.format(self.name, step))
         saver.restore(sess, save_path)
         print('=> !!CNN restored from file: {}, epoch {}'.format(save_path, step))
@@ -124,7 +124,7 @@ class MeshNet(Model):
                 self.loss += 5e-6 * tf.nn.l2_loss(var)
 
     def _build(self):
-        with tf.name_scope('pixel2mesh'):
+        with tf.compat.v1.name_scope('pixel2mesh'):
             self.build_cnn18()  # update image feature
             # sample hypothesis points
             self.sample1 = SampleHypothesis(placeholders=self.placeholders, name='graph_sample_hypothesis_1_layer_0')
@@ -184,11 +184,11 @@ class MeshNet(Model):
         x5 = x
         # updata image feature
         self.placeholders.update({'img_feat': [tf.squeeze(x0), tf.squeeze(x1), tf.squeeze(x2)]})
-        self.loss += tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)) * 0.3
+        self.loss += tf.add_n(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.REGULARIZATION_LOSSES)) * 0.3
 
     def build(self):
         ''' Wrapper for _build() '''
-        with tf.variable_scope(self.name):
+        with tf.compat.v1.variable_scope(self.name):
             self._build()
 
         blk1_sample = self.sample1(self.inputs)
@@ -203,12 +203,12 @@ class MeshNet(Model):
         self.output2l = blk2_out
 
         # Store model variables for easy access
-        variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name+'/')
+        variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.name+'/')
         self.vars = {var.name: var for var in variables}
 
         # Build metrics
         self._loss()
         self.opt_op = self.optimizer.minimize(self.loss)
 
-        self.summary_loss = tf.summary.scalar('loss', self.loss)
-        self.merged_summary_op = tf.summary.merge_all()
+        self.summary_loss = tf.compat.v1.summary.scalar('loss', self.loss)
+        self.merged_summary_op = tf.compat.v1.summary.merge_all()

@@ -3,7 +3,8 @@
 # This code is licensed under BSD 3-Clause License.
 import numpy as np
 import tensorflow as tf
-from modules.chamfer import nn_distance
+# from modules.chamfer import nn_distance
+from external.tf_nndistance_cpu import nn_distance_cpu as nn_distance
 from scipy import stats
 
 
@@ -12,8 +13,8 @@ def laplace_coord(pred, placeholders, block_id):
     indices = placeholders['lape_idx'][block_id - 1][:, :8]
     weights = tf.cast(placeholders['lape_idx'][block_id - 1][:, -1], tf.float32)
 
-    weights = tf.tile(tf.reshape(tf.reciprocal(weights), [-1, 1]), [1, 3])
-    laplace = tf.reduce_sum(tf.gather(vertex, indices), 1)
+    weights = tf.tile(tf.reshape(tf.math.reciprocal(weights), [-1, 1]), [1, 3])
+    laplace = tf.reduce_sum(input_tensor=tf.gather(vertex, indices), axis=1)
     laplace = tf.subtract(pred, tf.multiply(laplace, weights))
     return laplace
 
@@ -22,14 +23,13 @@ def laplace_loss(pred1, pred2, placeholders, block_id):
     # laplace term
     lap1 = laplace_coord(pred1, placeholders, block_id)
     lap2 = laplace_coord(pred2, placeholders, block_id)
-    laplace_loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(lap1, lap2)), 1)) * 1500
-    move_loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(pred1, pred2)), 1)) * 50
+    laplace_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=tf.square(tf.subtract(lap1, lap2)), axis=1)) * 1500
+    move_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=tf.square(tf.subtract(pred1, pred2)), axis=1)) * 50
     return laplace_loss + move_loss
 
 
 def unit(tensor):
     return tf.nn.l2_normalize(tensor, axis=1)
-
 
 def mesh_loss(pred, placeholders, block_id):
     gt_pt = placeholders['labels'][:, :3]  # gt points
@@ -41,31 +41,31 @@ def mesh_loss(pred, placeholders, block_id):
     edge = tf.subtract(nod1, nod2)
 
     # edge length loss
-    edge_length = tf.reduce_sum(tf.square(edge), 1)
-    edge_loss = tf.reduce_mean(edge_length) * 350
+    edge_length = tf.reduce_sum(input_tensor=tf.square(edge), axis=1)
+    edge_loss = tf.reduce_mean(input_tensor=edge_length) * 350
 
     # chamfer distance
     sample_pt = sample(pred, placeholders, block_id)
     sample_pred = tf.concat([pred, sample_pt], axis=0)
     dist1, idx1, dist2, idx2 = nn_distance(gt_pt, sample_pred)
-    point_loss = (tf.reduce_mean(dist1) + 0.55 * tf.reduce_mean(dist2)) * 3000
+    point_loss = (tf.reduce_mean(input_tensor=dist1) + 0.55 * tf.reduce_mean(input_tensor=dist2)) * 3000
 
     # normal cosine loss
     normal = tf.gather(gt_nm, tf.squeeze(idx2, 0))
     normal = tf.gather(normal, placeholders['edges'][block_id - 1][:, 0])
-    cosine = tf.abs(tf.reduce_sum(tf.multiply(unit(normal), unit(edge)), 1))
-    normal_loss = tf.reduce_mean(cosine) * 0.5
+    cosine = tf.abs(tf.reduce_sum(input_tensor=tf.multiply(unit(normal), unit(edge)), axis=1))
+    normal_loss = tf.reduce_mean(input_tensor=cosine) * 0.5
 
     total_loss = point_loss + edge_loss + normal_loss
     return total_loss
 
 
 def sample(pred, placeholders, block_id):
-    uni = tf.distributions.Uniform(low=0.0, high=1.0)
+    uni = tf.compat.v1.distributions.Uniform(low=0.0, high=1.0)
     faces = placeholders['faces_triangle'][block_id - 1]
-    tilefaces = tf.py_func(choice_faces, [pred, faces], tf.int32)
+    tilefaces = tf.compat.v1.py_func(choice_faces, [pred, faces], tf.int32)
 
-    num_of_tile_faces = tf.shape(tilefaces)[0]
+    num_of_tile_faces = tf.shape(input=tilefaces)[0]
 
     xs = tf.gather(pred, tilefaces[:, 0])
     ys = tf.gather(pred, tilefaces[:, 1])
@@ -97,8 +97,8 @@ def laplace_loss_2(pred1, pred2, placeholders, block_id):
     # laplace term
     lap1 = laplace_coord(pred1, placeholders, block_id)
     lap2 = laplace_coord(pred2, placeholders, block_id)
-    laplace_loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(lap1, lap2)), 1)) * 1500
-    move_loss = tf.reduce_mean(tf.reduce_sum(tf.square(tf.subtract(pred1, pred2)), 1)) * 100
+    laplace_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=tf.square(tf.subtract(lap1, lap2)), axis=1)) * 1500
+    move_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=tf.square(tf.subtract(pred1, pred2)), axis=1)) * 100
     return laplace_loss + move_loss
 
 
@@ -112,20 +112,20 @@ def mesh_loss_2(pred, placeholders, block_id):
     edge = tf.subtract(nod1, nod2)
 
     # edge length loss
-    edge_length = tf.reduce_sum(tf.square(edge), 1)
-    edge_loss = tf.reduce_mean(edge_length) * 500
+    edge_length = tf.reduce_sum(input_tensor=tf.square(edge), axis=1)
+    edge_loss = tf.reduce_mean(input_tensor=edge_length) * 500
 
     # chamfer distance
     sample_pt = sample(pred, placeholders, block_id)
     sample_pred = tf.concat([pred, sample_pt], axis=0)
     dist1, idx1, dist2, idx2 = nn_distance(gt_pt, sample_pred)
-    point_loss = (tf.reduce_mean(dist1) + 0.55 * tf.reduce_mean(dist2)) * 3000
+    point_loss = (tf.reduce_mean(input_tensor=dist1) + 0.55 * tf.reduce_mean(input_tensor=dist2)) * 3000
 
     # normal cosine loss
     normal = tf.gather(gt_nm, tf.squeeze(idx2, 0))
     normal = tf.gather(normal, placeholders['edges'][block_id - 1][:, 0])
-    cosine = tf.abs(tf.reduce_sum(tf.multiply(unit(normal), unit(edge)), 1))
-    normal_loss = tf.reduce_mean(cosine) * 0.5
+    cosine = tf.abs(tf.reduce_sum(input_tensor=tf.multiply(unit(normal), unit(edge)), axis=1))
+    normal_loss = tf.reduce_mean(input_tensor=cosine) * 0.5
 
     total_loss = point_loss + edge_loss + normal_loss
     return total_loss

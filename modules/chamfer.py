@@ -1,7 +1,12 @@
 import tensorflow as tf
 from tensorflow.python.framework import ops
+# from tensorflow_graphics.nn.loss import chamfer_distance
 
-nn_distance_module = tf.load_op_library('./external/tf_nndistance_so.so')
+nn_distance_module = tf.load_op_library('external/tf_nndistance_so.so')
+
+# import torch, chamfer3D.dist_chamfer_3D, fscore
+# chamLoss = chamfer3D.dist_chamfer_3D.chamfer_3DDist()
+
 
 
 def nn_distance(xyz1, xyz2):
@@ -16,7 +21,9 @@ def nn_distance(xyz1, xyz2):
     """
     xyz1 = tf.expand_dims(xyz1, 0)
     xyz2 = tf.expand_dims(xyz2, 0)
+    # return chamLoss(xyz1, xyz2)
     return nn_distance_module.nn_distance(xyz1, xyz2)
+    # return chamfer_distance.evaluate(xyz1, xyz2)
 
 
 # @tf.RegisterShape('NnDistance')
@@ -42,7 +49,7 @@ if __name__ == '__main__':
 
     random.seed(100)
     np.random.seed(100)
-    with tf.Session('') as sess:
+    with tf.compat.v1.Session('') as sess:
         xyz1 = np.random.randn(32, 16384, 3).astype('float32')
         xyz2 = np.random.randn(32, 1024, 3).astype('float32')
         # with tf.device('/gpu:0'):
@@ -50,9 +57,9 @@ if __name__ == '__main__':
             inp1 = tf.Variable(xyz1)
             inp2 = tf.constant(xyz2)
             reta, retb, retc, retd = nn_distance(inp1, inp2)
-            loss = tf.reduce_sum(reta) + tf.reduce_sum(retc)
-            train = tf.train.GradientDescentOptimizer(learning_rate=0.05).minimize(loss)
-        sess.run(tf.initialize_all_variables())
+            loss = tf.reduce_sum(input_tensor=reta) + tf.reduce_sum(input_tensor=retc)
+            train = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=0.05).minimize(loss)
+        sess.run(tf.compat.v1.initialize_all_variables())
         t0 = time.time()
         t1 = t0
         best = 1e100

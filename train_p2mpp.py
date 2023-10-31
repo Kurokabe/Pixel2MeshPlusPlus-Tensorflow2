@@ -23,27 +23,27 @@ def main(cfg):
     print('=> pre-porcessing')
     seed = 123
     np.random.seed(seed)
-    tf.set_random_seed(seed)
+    tf.compat.v1.set_random_seed(seed)
     # ---------------------------------------------------------------
     num_blocks = 3
     num_supports = 2
     placeholders = {
-        'features': tf.placeholder(tf.float32, shape=(None, 3), name='features'),
-        'img_inp': tf.placeholder(tf.float32, shape=(3, 224, 224, 3), name='img_inp'),
-        'labels': tf.placeholder(tf.float32, shape=(None, 6), name='labels'),
-        'support1': [tf.sparse_placeholder(tf.float32) for _ in range(num_supports)],
-        'support2': [tf.sparse_placeholder(tf.float32) for _ in range(num_supports)],
-        'support3': [tf.sparse_placeholder(tf.float32) for _ in range(num_supports)],
-        'faces': [tf.placeholder(tf.int32, shape=(None, 4)) for _ in range(num_blocks)],
-        'edges': [tf.placeholder(tf.int32, shape=(None, 2)) for _ in range(num_blocks)],
-        'lape_idx': [tf.placeholder(tf.int32, shape=(None, 10)) for _ in range(num_blocks)],  # for laplace term
-        'pool_idx': [tf.placeholder(tf.int32, shape=(None, 2)) for _ in range(num_blocks - 1)],  # for unpooling
-        'dropout': tf.placeholder_with_default(0., shape=()),
-        'num_features_nonzero': tf.placeholder(tf.int32),
-        'sample_coord': tf.placeholder(tf.float32, shape=(43, 3), name='sample_coord'),
-        'cameras': tf.placeholder(tf.float32, shape=(3, 5), name='Cameras'),
-        'faces_triangle': [tf.placeholder(tf.int32, shape=(None, 3)) for _ in range(num_blocks)],
-        'sample_adj': [tf.placeholder(tf.float32, shape=(43, 43)) for _ in range(num_supports)],
+        'features': tf.compat.v1.placeholder(tf.float32, shape=(None, 3), name='features'),
+        'img_inp': tf.compat.v1.placeholder(tf.float32, shape=(3, 224, 224, 3), name='img_inp'),
+        'labels': tf.compat.v1.placeholder(tf.float32, shape=(None, 6), name='labels'),
+        'support1': [tf.compat.v1.sparse_placeholder(tf.float32) for _ in range(num_supports)],
+        'support2': [tf.compat.v1.sparse_placeholder(tf.float32) for _ in range(num_supports)],
+        'support3': [tf.compat.v1.sparse_placeholder(tf.float32) for _ in range(num_supports)],
+        'faces': [tf.compat.v1.placeholder(tf.int32, shape=(None, 4)) for _ in range(num_blocks)],
+        'edges': [tf.compat.v1.placeholder(tf.int32, shape=(None, 2)) for _ in range(num_blocks)],
+        'lape_idx': [tf.compat.v1.placeholder(tf.int32, shape=(None, 10)) for _ in range(num_blocks)],  # for laplace term
+        'pool_idx': [tf.compat.v1.placeholder(tf.int32, shape=(None, 2)) for _ in range(num_blocks - 1)],  # for unpooling
+        'dropout': tf.compat.v1.placeholder_with_default(0., shape=()),
+        'num_features_nonzero': tf.compat.v1.placeholder(tf.int32),
+        'sample_coord': tf.compat.v1.placeholder(tf.float32, shape=(43, 3), name='sample_coord'),
+        'cameras': tf.compat.v1.placeholder(tf.float32, shape=(3, 5), name='Cameras'),
+        'faces_triangle': [tf.compat.v1.placeholder(tf.int32, shape=(None, 3)) for _ in range(num_blocks)],
+        'sample_adj': [tf.compat.v1.placeholder(tf.float32, shape=(43, 43)) for _ in range(num_supports)],
     }
 
     root_dir = os.path.join(cfg.save_path, cfg.name)
@@ -77,12 +77,12 @@ def main(cfg):
     data.start()
     # ---------------------------------------------------------------
     print('=> initialize session')
-    sesscfg = tf.ConfigProto()
+    sesscfg = tf.compat.v1.ConfigProto()
     sesscfg.gpu_options.allow_growth = True
     sesscfg.allow_soft_placement = True
-    sess = tf.Session(config=sesscfg)
-    sess.run(tf.global_variables_initializer())
-    train_writer = tf.summary.FileWriter(summaries_dir, sess.graph, filename_suffix='train')
+    sess = tf.compat.v1.Session(config=sesscfg)
+    sess.run(tf.compat.v1.global_variables_initializer())
+    train_writer = tf.compat.v1.summary.FileWriter(summaries_dir, sess.graph, filename_suffix='train')
     # ---------------------------------------------------------------
     if cfg.load_cnn:
         print('=> load pre-trained cnn')

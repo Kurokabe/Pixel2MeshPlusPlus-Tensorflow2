@@ -67,19 +67,19 @@ if __name__=='__main__':
 	npoint=100
 
 	with tf.device('/gpu:2'):
-		pt_in=tf.placeholder(tf.float32,shape=(1,npoint*4,3))
+		pt_in=tf.compat.v1.placeholder(tf.float32,shape=(1,npoint*4,3))
 		mypoints=tf.Variable(np.random.randn(1,npoint,3).astype('float32'))
 		match=approx_match(pt_in,mypoints)
-		loss=tf.reduce_sum(match_cost(pt_in,mypoints,match))
+		loss=tf.reduce_sum(input_tensor=match_cost(pt_in,mypoints,match))
 		#match=approx_match(mypoints,pt_in)
 		#loss=tf.reduce_sum(match_cost(mypoints,pt_in,match))
 		#distf,_,distb,_=tf_nndistance.nn_distance(pt_in,mypoints)
 		#loss=tf.reduce_sum((distf+1e-9)**0.5)*0.5+tf.reduce_sum((distb+1e-9)**0.5)*0.5
 		#loss=tf.reduce_max((distf+1e-9)**0.5)*0.5*npoint+tf.reduce_max((distb+1e-9)**0.5)*0.5*npoint
 
-		optimizer=tf.train.GradientDescentOptimizer(1e-4).minimize(loss)
-	with tf.Session('') as sess:
-		sess.run(tf.initialize_all_variables())
+		optimizer=tf.compat.v1.train.GradientDescentOptimizer(1e-4).minimize(loss)
+	with tf.compat.v1.Session('') as sess:
+		sess.run(tf.compat.v1.initialize_all_variables())
 		while True:
 			meanloss=0
 			meantrueloss=0

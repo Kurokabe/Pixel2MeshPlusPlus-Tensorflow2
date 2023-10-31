@@ -12,6 +12,9 @@ def construct_feed_dict(pkl, placeholders):
     pool_idx = pkl['pool_idx']
     faces = pkl['faces']
     lape_idx = pkl['lape_idx']
+    lape_idx[0][lape_idx[0] == -1] = 156
+    lape_idx[1][lape_idx[1] == -1] = 618
+    lape_idx[2][lape_idx[2] == -1] = 2466
 
     edges = []
     for i in range(1, 4):
@@ -52,9 +55,9 @@ def reduce_var(x, axis=None, keepdims=False):
     # Returns
         A tensor with the variance of elements of `x`.
     """
-    m = tf.reduce_mean(x, axis=axis, keepdims=True)
+    m = tf.reduce_mean(input_tensor=x, axis=axis, keepdims=True)
     devs_squared = tf.square(x - m)
-    return tf.reduce_mean(devs_squared, axis=axis, keepdims=keepdims)
+    return tf.reduce_mean(input_tensor=devs_squared, axis=axis, keepdims=keepdims)
 
 
 def reduce_std(x, axis=None, keepdims=False):
@@ -79,7 +82,7 @@ def reduce_std(x, axis=None, keepdims=False):
 
 
 def normal(v):
-    norm = tf.norm(v)
+    norm = tf.norm(tensor=v)
     if norm == 0:
         return v
     return tf.divide(v, norm)
@@ -96,7 +99,7 @@ def cameraMat(param):
     x = camy * tf.cos(theta + np.pi)
     z = camy * tf.sin(theta + np.pi)
     Y = tf.stack([x, lens, z])
-    X = tf.cross(Y, Z)
+    X = tf.linalg.cross(Y, Z)
 
     cm_mat = tf.stack([normal(X), normal(Y), normal(Z)])
     return cm_mat, Z
@@ -106,18 +109,19 @@ def camera_trans(camera_metadata, xyz):
     c, o = cameraMat(camera_metadata)
     points = xyz[:, :3]
     pt_trans = points - o
-    pt_trans = tf.matmul(pt_trans, tf.transpose(c))
+    pt_trans = tf.matmul(pt_trans, tf.transpose(a=c))
     return pt_trans
 
 
 def camera_trans_inv(camera_metadata, xyz):
     c, o = cameraMat(camera_metadata)
-    inv_xyz = (tf.matmul(xyz, tf.matrix_inverse(tf.transpose(c)))) + o
+    with tf.device("/cpu:0"):
+        inv_xyz = (tf.matmul(xyz, tf.linalg.inv(tf.transpose(a=c)))) + o
     return inv_xyz
 
 
-def load_demo_image(demo_image_list):
-    imgs = np.zeros((3, 224, 224, 3))
+def load_demo_image(demo_image_list, n_images):
+    imgs = np.zeros((n_images, 224, 224, 3))
     for idx, demo_img_path in enumerate(demo_image_list):
         img = cv2.imread(demo_img_path, cv2.IMREAD_UNCHANGED)
         if img.shape[2] == 4:

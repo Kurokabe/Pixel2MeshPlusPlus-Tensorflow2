@@ -35,13 +35,13 @@ if __name__ == '__main__':
     xyz_list_path = glob.glob(pred_file_list)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     # exit(0)
-    xyz1 = tf.placeholder(tf.float32, shape=(None, 3))
-    xyz2 = tf.placeholder(tf.float32, shape=(None, 3))
+    xyz1 = tf.compat.v1.placeholder(tf.float32, shape=(None, 3))
+    xyz2 = tf.compat.v1.placeholder(tf.float32, shape=(None, 3))
     dist1, idx1, dist2, idx2 = nn_distance(xyz1, xyz2)
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
 
     # xyz_list_path = sys.argv[1]
     threshold = [0.00005, 0.00010, 0.00015, 0.00020]

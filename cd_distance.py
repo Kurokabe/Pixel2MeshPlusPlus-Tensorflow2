@@ -9,7 +9,8 @@ import tensorflow as tf
 import pprint
 import glob
 import os
-from modules.chamfer import nn_distance
+# from modules.chamfer import nn_distance
+from external.tf_nndistance_cpu import nn_distance_cpu as nn_distance
 from modules.config import execute
 
 if __name__ == '__main__':
@@ -17,13 +18,13 @@ if __name__ == '__main__':
     args = execute()
     pprint.pprint(vars(args))
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
-    xyz1 = tf.placeholder(tf.float32, shape=(None, 3))
-    xyz2 = tf.placeholder(tf.float32, shape=(None, 3))
+    xyz1 = tf.compat.v1.placeholder(tf.float32, shape=(None, 3))
+    xyz2 = tf.compat.v1.placeholder(tf.float32, shape=(None, 3))
     dist1, idx1, dist2, idx2 = nn_distance(xyz1, xyz2)
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
 
     pred_file_list = os.path.join(args.save_path, args.name, 'predict', str(args.test_epoch), '*_predict.xyz')
     xyz_list_path = glob.glob(pred_file_list)
