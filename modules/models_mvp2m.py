@@ -3,7 +3,7 @@
 # This code is licensed under BSD 3-Clause License.
 # import tflearn
 import tensorflow as tf
-from tensorflow.keras.layers import Conv2D, Concatenate, Input, Lambda
+from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.models import Model as KerasModel
 import os
 

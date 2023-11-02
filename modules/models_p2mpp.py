@@ -2,8 +2,11 @@
 # All rights reserved.
 # This code is licensed under BSD 3-Clause License.
 import tensorflow as tf
-import tflearn
+from tensorflow.keras.layers import Conv2D
+
+# import tflearn
 import os
+
 # import tensorflow.contrib.layers as tfcontriblayers
 
 from modules.losses import mesh_loss_2, laplace_loss_2
@@ -12,18 +15,18 @@ from modules.layers import LocalGraphProjection, SampleHypothesis, DeformationRe
 
 class Model(object):
     def __init__(self, **kwargs):
-        allowed_kwargs = {'name', 'logging', 'suffix'}
+        allowed_kwargs = {"name", "logging", "suffix"}
         for kwarg in kwargs.keys():
-            assert kwarg in allowed_kwargs, 'Invalid keyword argument: ' + kwarg
-        name = kwargs.get('name')
+            assert kwarg in allowed_kwargs, "Invalid keyword argument: " + kwarg
+        name = kwargs.get("name")
         if not name:
             name = self.__class__.__name__.lower()
         self.name = name
 
-        logging = kwargs.get('logging', False)
+        logging = kwargs.get("logging", False)
         self.logging = logging
 
-        save_dir_suffix = kwargs.get('suffix', '')
+        save_dir_suffix = kwargs.get("suffix", "")
         self.save_dir_suffix = save_dir_suffix
 
         self.vars = {}
@@ -66,26 +69,28 @@ class Model(object):
 
     def save(self, sess=None, ckpt_path=None, step=None):
         if not sess:
-            raise AttributeError('TensorFlow session not provided.')
+            raise AttributeError("TensorFlow session not provided.")
         saver = tf.compat.v1.train.Saver(self.vars, max_to_keep=0)
-        save_path = saver.save(sess, os.path.join(ckpt_path, '{}.ckpt'.format(self.name)), global_step=step)
-        print('Model saved in file: {}, epoch {}'.format(save_path, step))
+        save_path = saver.save(
+            sess, os.path.join(ckpt_path, "{}.ckpt".format(self.name)), global_step=step
+        )
+        print("Model saved in file: {}, epoch {}".format(save_path, step))
 
     def load(self, sess=None, ckpt_path=None, step=None):
         if not sess:
-            raise AttributeError('TensorFlow session not provided.')
-        # print(self.vars)
+            raise AttributeError("TensorFlow session not provided.")
+        print(self.vars)
         saver = tf.compat.v1.train.Saver(self.vars)
-        save_path = os.path.join(ckpt_path, '{}.ckpt-{}'.format(self.name, step))
+        save_path = os.path.join(ckpt_path, "{}.ckpt-{}".format(self.name, step))
         saver.restore(sess, save_path)
-        print('Model restored from file: {}, epoch {}'.format(save_path, step))
+        print("Model restored from file: {}, epoch {}".format(save_path, step))
 
 
 class MeshNet(Model):
     def __init__(self, placeholders, args, **kwargs):
         super(MeshNet, self).__init__(**kwargs)
 
-        self.inputs = placeholders['features']
+        self.inputs = placeholders["features"]
         self.placeholders = placeholders
         self.args = args
         self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.args.lr)
@@ -103,13 +108,15 @@ class MeshNet(Model):
 
     def loadcnn(self, sess=None, ckpt_path=None, step=None):
         if not sess:
-            raise AttributeError('TensorFlow session not provided.')
-        variables_to_restore = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='meshnet/cnn/')
+            raise AttributeError("TensorFlow session not provided.")
+        variables_to_restore = tf.compat.v1.get_collection(
+            tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope="meshnet/cnn/"
+        )
         var_list = {var.name: var for var in variables_to_restore}
         saver = tf.compat.v1.train.Saver(var_list)
-        save_path = os.path.join(ckpt_path, '{}.ckpt-{}'.format(self.name, step))
+        save_path = os.path.join(ckpt_path, "{}.ckpt-{}".format(self.name, step))
         saver.restore(sess, save_path)
-        print('=> !!CNN restored from file: {}, epoch {}'.format(save_path, step))
+        print("=> !!CNN restored from file: {}, epoch {}".format(save_path, step))
 
     def _loss(self):
         # Pixel2mesh loss
@@ -124,70 +131,247 @@ class MeshNet(Model):
                 self.loss += 5e-6 * tf.nn.l2_loss(var)
 
     def _build(self):
-        with tf.compat.v1.name_scope('pixel2mesh'):
+        with tf.compat.v1.name_scope("pixel2mesh"):
             self.build_cnn18()  # update image feature
             # sample hypothesis points
-            self.sample1 = SampleHypothesis(placeholders=self.placeholders, name='graph_sample_hypothesis_1_layer_0')
+            self.sample1 = SampleHypothesis(
+                placeholders=self.placeholders, name="graph_sample_hypothesis_1_layer_0"
+            )
             # 1st projection block
-            self.proj1 = LocalGraphProjection(placeholders=self.placeholders, name='graph_localproj_1_layer_1')
+            self.proj1 = LocalGraphProjection(
+                placeholders=self.placeholders, name="graph_localproj_1_layer_1"
+            )
             # 1st DRB
-            self.drb1 = DeformationReasoning(input_dim=self.args.stage2_feat_dim,
-                                             output_dim=3,
-                                             placeholders=self.placeholders,
-                                             gcn_block=3,
-                                             args=self.args,
-                                             name='graph_drb_blk1_layer_2')
+            self.drb1 = DeformationReasoning(
+                input_dim=self.args.stage2_feat_dim,
+                output_dim=3,
+                placeholders=self.placeholders,
+                gcn_block=3,
+                args=self.args,
+                name="graph_drb_blk1_layer_2",
+            )
             # sample hypothesis points
-            self.sample2 = SampleHypothesis(placeholders=self.placeholders, name='graph_sample_hypothesis_2_layer_3')
+            self.sample2 = SampleHypothesis(
+                placeholders=self.placeholders, name="graph_sample_hypothesis_2_layer_3"
+            )
             # 2nd projection block
-            self.proj2 = LocalGraphProjection(placeholders=self.placeholders, name='graph_localproj_2_layer_4')
+            self.proj2 = LocalGraphProjection(
+                placeholders=self.placeholders, name="graph_localproj_2_layer_4"
+            )
             # 2nd DRB
-            self.drb2 = DeformationReasoning(input_dim=self.args.stage2_feat_dim,
-                                             output_dim=3,
-                                             placeholders=self.placeholders,
-                                             gcn_block=3,
-                                             args=self.args,
-                                             name='graph_drb_blk2_layer_5')
+            self.drb2 = DeformationReasoning(
+                input_dim=self.args.stage2_feat_dim,
+                output_dim=3,
+                placeholders=self.placeholders,
+                gcn_block=3,
+                args=self.args,
+                name="graph_drb_blk2_layer_5",
+            )
 
     def build_cnn18(self):
-        x = self.placeholders['img_inp']
+        x = self.placeholders["img_inp"]
         # x = tf.expand_dims(x, 0)
-# 224 224
-        x = tflearn.layers.conv.conv_2d(x, 16, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_1')
-        x = tflearn.layers.conv.conv_2d(x, 16, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_2')
+        # 224 224
+        x = Conv2D(
+            16,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_1",
+        )(x)
+        x = Conv2D(
+            16,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_2",
+        )(x)
         x0 = x
-        x = tflearn.layers.conv.conv_2d(x, 32, (3, 3), strides=2, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_3')
-# 112 112
-        x = tflearn.layers.conv.conv_2d(x, 32, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_4')
-        x = tflearn.layers.conv.conv_2d(x, 32, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_5')
+        x = Conv2D(
+            32,
+            (3, 3),
+            strides=2,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_3",
+        )(x)
+        # 112 112
+        x = Conv2D(
+            32,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_4",
+        )(x)
+        x = Conv2D(
+            32,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_5",
+        )(x)
         x1 = x
-        x = tflearn.layers.conv.conv_2d(x, 64, (3, 3), strides=2, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_6')
-# 56 56
-        x = tflearn.layers.conv.conv_2d(x, 64, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_7')
-        x = tflearn.layers.conv.conv_2d(x, 64, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_8')
+        x = Conv2D(
+            64,
+            (3, 3),
+            strides=2,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_6",
+        )(x)
+        # 56 56
+        x = Conv2D(
+            64,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_7",
+        )(x)
+        x = Conv2D(
+            64,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_8",
+        )(x)
         x2 = x
-        x = tflearn.layers.conv.conv_2d(x, 128, (3, 3), strides=2, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_9')
-# 28 28
-        x = tflearn.layers.conv.conv_2d(x, 128, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_10')
-        x = tflearn.layers.conv.conv_2d(x, 128, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_11')
+        x = Conv2D(
+            128,
+            (3, 3),
+            strides=2,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_9",
+        )(x)
+        # 28 28
+        x = Conv2D(
+            128,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_10",
+        )(x)
+        x = Conv2D(
+            128,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_11",
+        )(x)
         x3 = x
-        x = tflearn.layers.conv.conv_2d(x, 256, (5, 5), strides=2, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_12')
-# 14 14
-        x = tflearn.layers.conv.conv_2d(x, 256, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_13')
-        x = tflearn.layers.conv.conv_2d(x, 256, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_14')
+        x = Conv2D(
+            256,
+            (5, 5),
+            strides=2,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_12",
+        )(x)
+        # 14 14
+        x = Conv2D(
+            256,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_13",
+        )(x)
+        x = Conv2D(
+            256,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_14",
+        )(x)
         x4 = x
-        x = tflearn.layers.conv.conv_2d(x, 512, (5, 5), strides=2, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_15')
-# 7 7
-        x = tflearn.layers.conv.conv_2d(x, 512, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_16')
-        x = tflearn.layers.conv.conv_2d(x, 512, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_17')
-        x = tflearn.layers.conv.conv_2d(x, 512, (3, 3), strides=1, activation='relu', weight_decay=1e-5, regularizer='L2', scope='cnn/conv2d_18')
+        x = Conv2D(
+            512,
+            (5, 5),
+            strides=2,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_15",
+        )(x)
+        # 7 7
+        x = Conv2D(
+            512,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_16",
+        )(x)
+        x = Conv2D(
+            512,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_17",
+        )(x)
+        x = Conv2D(
+            512,
+            (3, 3),
+            strides=1,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(1e-5),
+            padding="same",
+            name="cnn/conv2d_18",
+        )(x)
         x5 = x
+
         # updata image feature
-        self.placeholders.update({'img_feat': [tf.squeeze(x0), tf.squeeze(x1), tf.squeeze(x2)]})
-        self.loss += tf.add_n(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.REGULARIZATION_LOSSES)) * 0.3
+        self.placeholders.update(
+            {
+                "img_feat": [
+                    tf.squeeze(x2),
+                    tf.squeeze(x3),
+                    tf.squeeze(x4),
+                    tf.squeeze(x5),
+                ]
+            }
+        )
+        # TODO
+        # Maybe the regularization loss can be used with
+        # self.loss += (tf.add_n(x.losses) * 0.3))
+
+        # self.loss += (
+        #     tf.add_n(
+        #         tf.compat.v1.get_collection(
+        #             tf.compat.v1.GraphKeys.REGULARIZATION_LOSSES
+        #         )
+        #     )
+        #     * 0.3
+        # )
 
     def build(self):
-        ''' Wrapper for _build() '''
+        """Wrapper for _build()"""
         with tf.compat.v1.variable_scope(self.name):
             self._build()
 
@@ -203,12 +387,14 @@ class MeshNet(Model):
         self.output2l = blk2_out
 
         # Store model variables for easy access
-        variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.name+'/')
+        variables = tf.compat.v1.get_collection(
+            tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.name + "/"
+        )
         self.vars = {var.name: var for var in variables}
 
         # Build metrics
         self._loss()
         self.opt_op = self.optimizer.minimize(self.loss)
 
-        self.summary_loss = tf.compat.v1.summary.scalar('loss', self.loss)
+        self.summary_loss = tf.compat.v1.summary.scalar("loss", self.loss)
         self.merged_summary_op = tf.compat.v1.summary.merge_all()
