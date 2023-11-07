@@ -1,0 +1,8 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+code: .
+command: >
+    python test_dataset.py
+environment: azureml:P2MPP-TF2:1
+compute: azureml:TestCPUCompute
+experiment_name: MVP2M
+description: Train the first step of the MVP2M
