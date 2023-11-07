@@ -18,10 +18,14 @@ import os
 
 from tqdm.auto import tqdm
 from modules.models_mvp2m import MeshNetMVP2M
-from utils.dataloader import DataFetcher
+from utils.dataloader_azure import DataFetcher
 from utils.tools import construct_feed_dict
 from modules.config import execute
 from utils.visualize import plot_scatter
+
+import mlflow.tensorflow
+
+mlflow.tensorflow.autolog()
 
 
 def main(cfg):

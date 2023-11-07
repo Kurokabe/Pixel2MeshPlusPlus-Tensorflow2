@@ -1,8 +1,10 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 code: .
 command: >
-    python train_mvp2m.py -f cfg/mvp2m.yaml
-environment: azureml:P2MPP-TF-Docker:1
+    python train_mvp2m.py -f cfgs/mvp2m.yaml
+
+
+environment: azureml:P2MPP-TF-DockerV2:1
 compute: azureml:OMENE-A100VM
 experiment_name: MVP2M
 description: Train the first step of the MVP2M
